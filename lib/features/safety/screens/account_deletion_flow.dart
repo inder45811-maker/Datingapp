@@ -1,22 +1,52 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-class AccountDeletionFlow extends StatelessWidget {
+class AccountDeletionFlow extends StatefulWidget {
   const AccountDeletionFlow({super.key});
 
-  Future<void> _executePermanentPurge(BuildContext context) async {
+  @override
+  State<AccountDeletionFlow> createState() => _AccountDeletionFlowState();
+}
+
+class _AccountDeletionFlowState extends State<AccountDeletionFlow> {
+  bool _isDeleting = false;
+
+  Future<void> _executePermanentPurge() async {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) return;
 
-    // Delete user profile record (Cascades down through FKs to swipes, matches, messages)
-    // Note: Full auth.users deletion requires a service-role edge function in production
-    // to satisfy Apple Guideline 5.1.1 complete data purge. This client-side path
-    // removes all application data and signs the user out.
-    await Supabase.instance.client.from('profiles').delete().eq('id', user.id);
-    await Supabase.instance.client.auth.signOut();
+    setState(() => _isDeleting = true);
 
-    if (context.mounted) {
-      Navigator.of(context).popUntil((route) => route.isFirst);
+    try {
+      // Call the service-role edge function that deletes both the profile
+      // (with cascades) and the auth.users record – required by Apple 5.1.1.
+      final response = await Supabase.instance.client.functions.invoke(
+        'delete-user',
+        headers: {
+          'Authorization': 'Bearer ${Supabase.instance.client.auth.currentSession?.accessToken}',
+        },
+      );
+
+      if (response.status != 200) {
+        throw Exception(response.data?['error'] ?? 'Deletion failed');
+      }
+
+      // Ensure local session is cleared
+      await Supabase.instance.client.auth.signOut();
+
+      if (mounted) {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Unable to delete account: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isDeleting = false);
+      }
     }
   }
 
@@ -36,7 +66,8 @@ class AccountDeletionFlow extends StatelessWidget {
             const SizedBox(height: 12),
             const Text(
               'Under Apple App Store Guideline 5.1.1, you have the right to permanently purge your entire footprint. '
-              'Executing this action instantly erases your profile metadata, matches, photo records, and real-time chat histories. This cannot be undone.',
+              'Executing this action instantly erases your profile metadata, matches, photo records, real-time chat histories, '
+              'and the underlying authentication record. This cannot be undone.',
               style: TextStyle(color: Colors.white70, height: 1.5),
             ),
             const Spacer(),
@@ -48,11 +79,17 @@ class AccountDeletionFlow extends StatelessWidget {
                   borderRadius: BorderRadius.circular(16),
                 ),
               ),
-              onPressed: () => _executePermanentPurge(context),
-              child: const Text(
-                'Permanently Erase All My Data',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-              ),
+              onPressed: _isDeleting ? null : _executePermanentPurge,
+              child: _isDeleting
+                  ? const SizedBox(
+                      height: 22,
+                      width: 22,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Text(
+                      'Permanently Erase All My Data',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
             ),
           ],
         ),
