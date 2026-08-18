@@ -1,0 +1,85 @@
+workflows:
+  ios-release:
+    name: iOS Release
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+      groups:
+        - appstore_credentials
+      vars:
+        BUNDLE_ID: com.orbit.app
+        XCODE_WORKSPACE: ios/Runner.xcworkspace
+        XCODE_SCHEME: Runner
+    scripts:
+      - name: Get Flutter packages
+        script: |
+          flutter pub get
+      - name: Install CocoaPods
+        script: |
+          cd ios && pod install
+      - name: Set up code signing
+        script: |
+          keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create
+          keychain add-certificates
+          xcode-project use-profiles
+      - name: Build IPA
+        script: |
+          flutter build ipa --release --export-options-plist=/Users/builder/export_options.plist
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      email:
+        recipients:
+          - YOUR_EMAIL@example.com
+        notify:
+          success: true
+          failure: true
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+
+  android-release:
+    name: Android Release
+    max_build_duration: 60
+    instance_type: linux_x2
+    environment:
+      flutter: stable
+      java: 17
+      groups:
+        - google_play_credentials
+      vars:
+        PACKAGE_NAME: com.orbit.app
+    scripts:
+      - name: Get Flutter packages
+        script: |
+          flutter pub get
+      - name: Decode keystore
+        script: |
+          echo $CM_KEYSTORE | base64 --decode > /tmp/keystore.jks
+          cat >> android/key.properties <<EOF
+          storePassword=$CM_KEYSTORE_PASSWORD
+          keyPassword=$CM_KEY_PASSWORD
+          keyAlias=$CM_KEY_ALIAS
+          storeFile=/tmp/keystore.jks
+          EOF
+      - name: Build App Bundle
+        script: |
+          flutter build appbundle --release
+    artifacts:
+      - build/app/outputs/bundle/release/*.aab
+    publishing:
+      email:
+        recipients:
+          - YOUR_EMAIL@example.com
+        notify:
+          success: true
+          failure: true
+      google_play:
+        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+        track: internal
+        submit_as_draft: true

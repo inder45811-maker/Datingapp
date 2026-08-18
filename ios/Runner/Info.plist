@@ -34,8 +34,13 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
+	<key>CADisableMinimumFrameDurationOnPhone</key>
+	<true/>
+	<key>UIApplicationSupportsIndirectInputEvents</key>
+	<true/>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 
-	<!-- Required usage descriptions for App Store review -->
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Orbit uses your location to show nearby people who share your relationship style and interests.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
@@ -49,7 +54,16 @@
 	<key>NSUserTrackingUsageDescription</key>
 	<string>This identifier will be used to deliver personalised ads to you.</string>
 
-	<!-- Sign in with Apple -->
+	<key>GADApplicationIdentifier</key>
+	<string>ca-app-pub-3940256099942544~1458002511</string>
+	<key>SKAdNetworkItems</key>
+	<array>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>cstr6suwn9.skadnetwork</string>
+		</dict>
+	</array>
+
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -57,7 +71,6 @@
 			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<!-- Replace with your actual reversed client id if required -->
 				<string>com.orbit.app</string>
 			</array>
 		</dict>

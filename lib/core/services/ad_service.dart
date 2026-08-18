@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../constants/app_constants.dart';
 
@@ -16,10 +17,8 @@ class AdService {
   }
 
   static Future<void> showRewardedForSpotlight(VoidCallback onRewardEarned) async {
-    RewardedAd? ad;
     loadRewarded((loadedAd) {
-      ad = loadedAd;
-      ad!.fullScreenContentCallback = FullScreenContentCallback(
+      loadedAd.fullScreenContentCallback = FullScreenContentCallback(
         onAdDismissedFullScreenContent: (ad) {
           ad.dispose();
         },
@@ -27,7 +26,7 @@ class AdService {
           ad.dispose();
         },
       );
-      ad!.show(onUserEarnedReward: (ad, reward) {
+      loadedAd.show(onUserEarnedReward: (ad, reward) {
         onRewardEarned();
       });
     });

@@ -7,23 +7,21 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 import 'core/theme/app_theme.dart';
 import 'core/constants/app_constants.dart';
 import 'features/auth/screens/apple_auth_screen.dart';
-import 'features/auth/providers/auth_provider.dart';
 import 'features/deck/screens/swipe_deck_screen.dart';
 import 'features/onboarding/screens/onboarding_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
-  // Parallel Services Initialization
   await Future.wait([
     Supabase.initialize(
       url: AppConstants.supabaseUrl,
       anonKey: AppConstants.supabaseAnonKey,
     ),
     MobileAds.instance.initialize(),
-    Purchases.configure(PurchasesConfiguration(AppConstants.revenueCatAppleApiKey)),
+    Purchases.configure(PurchasesConfiguration(AppConstants.revenueCatApiKey)),
   ]);
 
   runApp(const ProviderScope(child: OrbitRoot()));
@@ -46,7 +44,6 @@ class OrbitRoot extends ConsumerWidget {
             return const AppleAuthScreen();
           }
 
-          // Profile completeness check
           return FutureBuilder(
             future: _isProfileComplete(),
             builder: (context, profileSnapshot) {
@@ -82,8 +79,6 @@ class OrbitRoot extends ConsumerWidget {
 
       if (row == null) return false;
 
-      // Consider the profile incomplete if it still has the placeholder birthdate
-      // or the default placeholder photo only.
       final birthdate = row['birthdate'] as String?;
       final photos = (row['photos'] as List?)?.cast<String>() ?? [];
       final name = row['display_name'] as String? ?? '';
